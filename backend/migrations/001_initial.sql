@@ -286,6 +286,76 @@ ALTER TABLE ONLY public.adoptions
     ADD CONSTRAINT adoptions_evaluation_id_fkey FOREIGN KEY (evaluation_id) REFERENCES public.evaluations(id);
 
 
+
+--
+-- Joint-test plan tables (added with the pre-registration / Holm feature)
+--
+
+CREATE TABLE public.plans (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    state character varying(20),
+    alpha double precision,
+    sample json NOT NULL,
+    design_checksum character varying(64),
+    result json,
+    error text,
+    attempts integer,
+    version integer,
+    attempt_log json,
+    created character varying(40)
+);
+
+CREATE SEQUENCE public.plans_id_seq AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.plans_id_seq OWNED BY public.plans.id;
+ALTER TABLE ONLY public.plans ALTER COLUMN id SET DEFAULT nextval('public.plans_id_seq'::regclass);
+ALTER TABLE ONLY public.plans ADD CONSTRAINT plans_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.plan_hypotheses (
+    id integer NOT NULL,
+    plan_id integer NOT NULL,
+    ordinal integer NOT NULL,
+    scope character varying(20) NOT NULL,
+    team character varying(40),
+    label character varying(120) NOT NULL,
+    statement text,
+    member_codes json,
+    state character varying(20),
+    error text,
+    n integer,
+    difference double precision,
+    sd double precision,
+    t double precision,
+    df integer,
+    p_value double precision,
+    ci json,
+    cohen_dz double precision,
+    excluded json,
+    adjusted_p double precision,
+    rank integer,
+    tie_group integer,
+    tie_size integer,
+    significant boolean
+);
+
+CREATE SEQUENCE public.plan_hypotheses_id_seq AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.plan_hypotheses_id_seq OWNED BY public.plan_hypotheses.id;
+ALTER TABLE ONLY public.plan_hypotheses ALTER COLUMN id SET DEFAULT nextval('public.plan_hypotheses_id_seq'::regclass);
+ALTER TABLE ONLY public.plan_hypotheses ADD CONSTRAINT plan_hypotheses_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.plan_hypotheses ADD CONSTRAINT plan_hypotheses_plan_id_ordinal_key UNIQUE (plan_id, ordinal);
+ALTER TABLE ONLY public.plan_hypotheses ADD CONSTRAINT plan_hypotheses_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.plans(id);
+
+ALTER TABLE public.adoptions ADD COLUMN plan_id integer;
+ALTER TABLE public.adoptions ADD COLUMN hypothesis_id integer;
+ALTER TABLE public.adoptions ADD COLUMN plan_version integer;
+ALTER TABLE public.adoptions ADD COLUMN evidence json;
+ALTER TABLE public.adoptions ADD COLUMN approved_by character varying(100);
+ALTER TABLE public.adoptions ADD COLUMN approved_at character varying(40);
+ALTER TABLE public.adoptions ADD CONSTRAINT adoptions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.plans(id);
+ALTER TABLE public.adoptions ADD CONSTRAINT adoptions_hypothesis_id_fkey FOREIGN KEY (hypothesis_id) REFERENCES public.plan_hypotheses(id);
+
+ALTER TABLE public.audits ADD COLUMN plan_id integer;
+
 --
 -- PostgreSQL database dump complete
 --
